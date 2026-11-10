@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KASHF – كاشف</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;background:#f8fafc;color:#0f172a}
+header{background:#1e40af;color:#fff;padding:16px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:22px}nav a{color:#fff;margin-inline-start:12px;text-decoration:none;font-size:14px}
+main{max-width:1000px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:16px;padding:16px;margin-top:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+button{background:#1d4ed8;color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:700}
+input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;margin-top:6px}
+.badge{background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>KASHF – كاشف</h1><nav><a href="#home">الرئيسية</a><a href="#map">الخريطة</a><a href="#complaint">شكوى</a><a href="#emergency">طوارئ</a></nav></header>
+<main id="home">
+<div class="card" style="background:linear-gradient(90deg,#1d4ed8,#172554);color:#fff">
+<h2>كل اللي محتاج تعرفه وتوصله في مكان واحد</h2>
+<p>اختار احتياجك، وحدد محافظتك ومنطقتك، وفتح لك الخدمة المناسبة.</p>
+<input id="q" placeholder="ابحث عن خدمة أو جهة أو مكان" oninput="search()">
+</div>
+<div class="card"><h3>الأقسام</h3><div class="grid" id="cats"></div></div>
+<div class="card"><h3>النتائج</h3><div id="results">ابحث أو اختر قسمًا.</div></div>
+<div class="card" id="complaint"><h3>تقديم شكوى</h3>
+<input id="c-gov" placeholder="المحافظة"><input id="c-area" placeholder="المنطقة"><input id="c-target" placeholder="الجهة">
+<input id="c-subject" placeholder="عنوان الشكوى"><textarea id="c-details" placeholder="التفاصيل"></textarea>
+<button onclick="submitComplaint()">إنشاء الشكوى</button><p id="c-msg"></p></div>
+<div class="card" id="map"><h3>الخريطة</h3><p>افتح الخريطة التفاعلية للبحث عن الخدمات القريبة.</p>
+<a href="https://www.google.com/maps" target="_blank"><button>فتح الخريطة</button></a></div>
+<div class="card" id="emergency"><h3>الطوارئ</h3>
+<div class="grid">
+<a href="tel:123"><button>الطوارئ 123</button></a>
+<a href="tel:126"><button>شرطة السياحة 126</button></a>
+<a href="tel:128"><button>شرطة المرور 128</button></a>
+</div></div>
+</main>
+<script>
+const cats=["government:الحكومة","health:الصحة","education:التعليم","jobs:الوظائف","transport:المواصلات","food:المطاعم","shopping:التسوق","safety:الطوارئ"];
+document.getElementById('cats').innerHTML=cats.map(c=>`<button onclick="search('${c.split(':')[0]}')">${c.split(':')[1]}</button>`).join('');
+async function search(cat=''){
+ const q=document.getElementById('q').value;
+ const res=await fetch(`/api/listings?q=${encodeURIComponent(q)}&category=${cat}`);
+ const data=await res.json();
+ document.getElementById('results').innerHTML=data.length?data.map(i=>`<div class="card"><b>${i.title}</b> <span class="badge">${i.status==='official'?'موثق رسميًا':'غير مؤكد'}</span><p>${i.description}</p><a href="${i.url}" target="_blank"><button>الموقع الرسمي</button></a> ${i.phone?`<a href="tel:${i.phone}"><button>اتصال</button></a>`:''}</div>`).join(''):'لا توجد نتائج';
+}
+async function submitComplaint(){
+ const body={category:'government',governorate:c_gov.value,area:c_area.value,target:c_target.value,subject:c_subject.value,details:c_details.value};
+ const res=await fetch('/api/complaints',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const data=await res.json();
+ document.getElementById('c-msg').innerHTML=`تم إنشاء الشكوى برقم <b>${data.reference}</b> <a href="/api/complaints/${data.reference}/pdf" target="_blank"><button>تحميل PDF</button></a>`;
+}
+search();
+</script>
+</body>
+</html>
